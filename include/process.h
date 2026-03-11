@@ -23,6 +23,7 @@ private:
     int32_t wait_time;          // total time spent in ready queue
     int32_t cpu_time;           // total time spent running on a CPU core
     int32_t remain_time;        // CPU time remaining until terminated
+    int32_t total_time;         // total CPU time for all bursts
     uint64_t launch_time;       // actual time in ms (since epoch) that process was 'launched'
     // you are welcome to add other private data fields here if you so choose
 
@@ -41,6 +42,7 @@ public:
     double getWaitTime() const;
     double getCpuTime() const;
     double getRemainingTime() const;
+    double getTotalRunTime() const;
 
     void setBurstStartTime(uint64_t current_time);
     void setState(State new_state, uint64_t current_time);
@@ -50,16 +52,6 @@ public:
 
     void updateProcess(uint64_t current_time);
     void updateBurstTime(int burst_idx, uint32_t new_time);
-};
-
-// Comparators: used in std::list sort() method
-// No comparator needed for FCFS or RR (ready queue never sorted)
-struct SjfComparator {
-    bool operator ()(const Process *p1, const Process *p2);
-};
-
-struct PpComparator {
-    bool operator ()(const Process *p1, const Process *p2);
 };
 
 #endif // __PROCESS_H_
