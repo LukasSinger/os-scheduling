@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <cstdint>
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -26,7 +27,10 @@ typedef struct SchedulerConfig {
     ProcessDetails *processes;
 } SchedulerConfig;
 
-SchedulerConfig* readConfigFile(const char *filename);
-void deleteConfig(SchedulerConfig *config);
+// wrap functions in namespace SCR (Scheduling Config Reader)
+namespace scr {
+    SchedulerConfig* readConfigFile(const char *filename);
+    void deleteConfig(SchedulerConfig *config);
+}
 
 #endif // __CONFIGREADER_H_
