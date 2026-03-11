@@ -106,6 +106,37 @@ void Process::interruptHandled() {
 void Process::updateProcess(uint64_t current_time) {
     // use `current_time` to update turnaround time, wait time, burst times, 
     // cpu time, and remaining time
+
+    //uint64_t const_time = 5; // 5ms "chunks" of time
+
+    uint64_t delta_time = current_time - turn_time;
+
+    // Turnaround time: Time from process initialization until process termination
+    turn_time += delta_time;
+
+    // Wait time: Amount of time spent in READY state (Summation)
+    if(state == Ready){
+        wait_time += delta_time;
+    }
+
+    // burst times: Amount of time spent doing the current CPU BURST (Decrement current burst)
+    // Cpu time: Amount of time spent WORKING
+    if(state == Running){
+        burst_times[current_burst] -= delta_time;
+
+        cpu_time += delta_time;
+    }
+
+    /*
+    MAY NOT DO HERE, BUT MUST DO AT SOME POINT
+    if(burst_times[current_burst] <= 0){
+        current_burst++;
+    }
+    */
+
+    // Remaining time: Amount of time remaining for the task (Summation of all remaining bursts)
+    remain_time -= delta_time;
+
 }
 
 void Process::updateBurstTime(int burst_idx, uint32_t new_time) {
