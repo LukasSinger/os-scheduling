@@ -25,6 +25,9 @@ std::string makeProgressString(double percent, uint32_t width);
 uint64_t currentTime();
 std::string processStateToString(Process::State state);
 
+void waitContextSwitch(SchedulerData *shared_data);
+void waitSimulatedTime();
+
 int main(int argc, char *argv[]) {
     // Ensure user entered a command line parameter for configuration file name
     if (argc < 2) {
@@ -60,6 +63,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    uint32_t num_processes = config->num_processes;
+
     // Free configuration data from memory
     scr::deleteConfig(config);
 
@@ -80,6 +85,22 @@ int main(int argc, char *argv[]) {
         //     - NOTE: ensure processes are inserted into the ready queue at the proper position based on algorithm
         //   - Determine if all processes are in the terminated state
         //   - * = accesses shared data (ready queue), so be sure to use proper synchronization
+
+
+        // THIS IS JUST ADDING PROCESSES TO THE QUEUE AFTER getStartTime HAS ELAPSED ///////
+        for (i = 0; i < num_processes; i++) {
+            Process *p = processes[i];
+
+            if ((p->getState() == Process::State::NotStarted) && ((currentTime() - start) >= p->getStartTime())) {
+
+                p->setState(Process::State::Ready, currentTime());
+
+                shared_data->queue_mutex.lock();
+                shared_data->ready_queue.push_back(p);
+                shared_data->queue_mutex.unlock();
+            }
+        }
+        ///////////////////////////////////////////
 
         printProcessOutput(processes);
 
@@ -133,42 +154,46 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
     //  - * = accesses shared data (ready queue), so be sure to use proper synchronization
 
     
+    while(!(shared_data->all_terminated)){
+        
+        // Getting process at front of ready queue, need mutex
+        shared_data->queue_mutex.lock();
+        if(!(shared_data->ready_queue.empty())){
+            Process* next_process = shared_data->ready_queue.front();
+            shared_data->ready_queue.pop_front(); //Removing the current process from Queue
+            shared_data->queue_mutex.unlock();
+            
 
-    // Getting process at front of ready queue, need mutex
-    shared_data->queue_mutex.lock();
-    if(!(shared_data->ready_queue.empty())){
-        Process next_process = *(shared_data->ready_queue.front());
-        shared_data->ready_queue.pop_front(); //Removing the current process from Queue
-        shared_data->queue_mutex.unlock();
+            waitContextSwitch(shared_data); // Context switch time, determined in config
+            next_process->setState(Process::State::Running, currentTime());
+            while(true){
+                //Simulateing the process running
+                waitSimulatedTime();
+                next_process->updateProcess(currentTime());
 
-        waitContextSwitch(shared_data); // Context switch time, determined in config
-        while(true){
-            //Simulateing the process running
-            waitSimulatedTime();
-            next_process.updateProcess(currentTime());
+                if(next_process->getRemainingTime() <= 0){
+                    // CPU Burst Time has elapsed
 
-            if(next_process.getRemainingTime() <= 0){
-                // CPU Burst Time has elapsed
+                    // Check to see if there are more bursts remaining
+                    if(next_process->getRemainingTime() > 0){
+                        // Set the state to IO since there are more tasks left
+                        next_process->setState(Process::IO, currentTime());
+                    } else{
+                        // Must not have any tasks left
+                        next_process->setState(Process::Terminated, currentTime());
+                    }
 
-                // Check to see if there are more bursts remaining
-                if(next_process.getRemainingTime() > 0){
-                    // Set the state to IO since there are more tasks left
-                    next_process.setState(Process::IO, currentTime());
-                } else{
-                    // Must not have any tasks left
-                    next_process.setState(Process::Terminated, currentTime());
+                    break;
+                } else if(next_process->isInterrupted()){
+                    // Interrupted
+                    break;
                 }
-
-                break;
-            } else if(next_process.isInterrupted()){
-                // Interrupted
-                break;
             }
+        } else{
+            // Queue was empty
+            shared_data->queue_mutex.unlock();
+            waitSimulatedTime();
         }
-    } else{
-        // Queue was empty
-        shared_data->queue_mutex.unlock();
-        waitSimulatedTime();
     }
     
 }
