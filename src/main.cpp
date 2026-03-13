@@ -131,6 +131,54 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
     //  - IF READY QUEUE WAS EMPTY
     //   - Wait short bit (i.e. sleep 5 ms)
     //  - * = accesses shared data (ready queue), so be sure to use proper synchronization
+
+    
+
+    // Getting process at front of ready queue, need mutex
+    shared_data->queue_mutex.lock();
+    if(!(shared_data->ready_queue.empty())){
+        Process next_process = *(shared_data->ready_queue.front());
+        shared_data->ready_queue.pop_front(); //Removing the current process from Queue
+        shared_data->queue_mutex.unlock();
+
+        waitContextSwitch(shared_data); // Context switch time, determined in config
+        while(true){
+            //Simulateing the process running
+            waitSimulatedTime();
+            next_process.updateProcess(currentTime());
+
+            if(next_process.getRemainingTime() <= 0){
+                // CPU Burst Time has elapsed
+
+                // Check to see if there are more bursts remaining
+                if(next_process.getRemainingTime() > 0){
+                    // Set the state to IO since there are more tasks left
+                    next_process.setState(Process::IO, currentTime());
+                } else{
+                    // Must not have any tasks left
+                    next_process.setState(Process::Terminated, currentTime());
+                }
+
+                break;
+            } else if(next_process.isInterrupted()){
+                // Interrupted
+                break;
+            }
+        }
+    } else{
+        // Queue was empty
+        shared_data->queue_mutex.unlock();
+        waitSimulatedTime();
+    }
+    
+}
+
+void waitContextSwitch(SchedulerData *shared_data){
+    std::this_thread::sleep_for(std::chrono::milliseconds(shared_data->context_switch));
+}
+
+void waitSimulatedTime(){
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
 }
 
 void printProcessOutput(std::vector<Process *> &processes) {
