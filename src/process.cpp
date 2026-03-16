@@ -1,4 +1,6 @@
 #include "process.h"
+#include <chrono>
+#include <thread>
 
 // Process class methods
 Process::Process(ProcessDetails details, uint64_t current_time) {
@@ -26,6 +28,8 @@ Process::Process(ProcessDetails details, uint64_t current_time) {
         total_time += burst_times[i];
     }
     remain_time = total_time;
+
+    last_update_time = current_time;
 }
 
 Process::~Process() {
@@ -73,11 +77,15 @@ double Process::getCpuTime() const {
 }
 
 double Process::getTotalRunTime() const {
-    return (double)remain_time / 1000.0;
+    return (double)total_time / 1000.0;
 }
 
 double Process::getRemainingTime() const {
     return (double)remain_time / 1000.0;
+}
+
+double Process::getRemainingBurstTime(){
+    return (double) burst_times[current_burst] / 1000.0;
 }
 
 void Process::setBurstStartTime(uint64_t current_time) {
@@ -109,7 +117,8 @@ void Process::updateProcess(uint64_t current_time) {
 
     //uint64_t const_time = 5; // 5ms "chunks" of time
 
-    uint64_t delta_time = current_time - turn_time;
+    uint64_t delta_time = current_time - last_update_time;
+    last_update_time = current_time;
 
     // Turnaround time: Time from process initialization until process termination
     turn_time += delta_time;
@@ -122,7 +131,14 @@ void Process::updateProcess(uint64_t current_time) {
     // burst times: Amount of time spent doing the current CPU BURST (Decrement current burst)
     // Cpu time: Amount of time spent WORKING
     if(state == Running){
-        burst_times[current_burst] -= delta_time;
+        if (burst_times[current_burst] > delta_time){
+            burst_times[current_burst] -= delta_time;
+        }else{
+            burst_times[current_burst] = 0;
+        }
+
+        //printf("BURST TIME REMAINING: %f\n", getRemainingBurstTime());
+        //std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
         cpu_time += delta_time;
     }
@@ -135,8 +151,11 @@ void Process::updateProcess(uint64_t current_time) {
     */
 
     // Remaining time: Amount of time remaining for the task (Summation of all remaining bursts)
-    remain_time -= delta_time;
-
+    if (remain_time > delta_time){
+        remain_time -= delta_time;
+    }else{
+        remain_time = 0;
+    }
 }
 
 void Process::updateBurstTime(int burst_idx, uint32_t new_time) {

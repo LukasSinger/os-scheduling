@@ -72,6 +72,7 @@ int main(int argc, char *argv[]) {
     std::thread *schedule_threads = new std::thread[num_cores];
     for (i = 0; i < num_cores; i++) {
         schedule_threads[i] = std::thread(coreRunProcesses, i, shared_data);
+        std::cout << "Thread " << i <<" Made";
     }
 
     // Main thread work goes here
@@ -114,6 +115,7 @@ int main(int argc, char *argv[]) {
 
     // wait for threads to finish
     for (i = 0; i < num_cores; i++) {
+        
         schedule_threads[i].join();
     }
 
@@ -171,7 +173,7 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
                 waitSimulatedTime();
                 next_process->updateProcess(currentTime());
 
-                if(next_process->getRemainingTime() <= 0){
+                if(next_process->getRemainingBurstTime() <= 0){
                     // CPU Burst Time has elapsed
 
                     // Check to see if there are more bursts remaining
