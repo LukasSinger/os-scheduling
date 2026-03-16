@@ -94,14 +94,30 @@ int main(int argc, char *argv[]) {
 
             if ((p->getState() == Process::State::NotStarted) && ((currentTime() - start) >= p->getStartTime())) {
 
-                p->setState(Process::State::Ready, currentTime());
+                
 
                 shared_data->queue_mutex.lock();
                 shared_data->ready_queue.push_back(p);
                 shared_data->queue_mutex.unlock();
+
+                p->setState(Process::State::Ready, currentTime());
             }
         }
         ///////////////////////////////////////////
+
+        // Check to see if state is I/O
+        for (i = 0; i < num_processes; i++) {
+            Process *p = processes[i];
+
+            if ((p->getState() == Process::State::IO)) {
+
+                shared_data->queue_mutex.lock();
+                shared_data->ready_queue.push_back(p);
+                shared_data->queue_mutex.unlock();
+
+                p->setState(Process::State::Ready, currentTime());
+            }
+        }
 
         printProcessOutput(processes);
 
