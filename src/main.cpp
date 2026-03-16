@@ -119,6 +119,18 @@ int main(int argc, char *argv[]) {
             }
         }
 
+        // Check to see if all processes are terminated
+        for (i = 0; i < num_processes; i++) {
+            Process *p = processes[i];
+
+            if ((p->getState() != Process::State::Terminated)) {
+                break;
+            }
+            if(i = num_processes-1){
+                shared_data->all_terminated=true;
+            }
+        }
+
         printProcessOutput(processes);
 
         // sleep 50 ms
