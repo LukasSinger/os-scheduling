@@ -88,36 +88,23 @@ int main(int argc, char *argv[]) {
         //   - * = accesses shared data (ready queue), so be sure to use proper synchronization
 
 
-        // THIS IS JUST ADDING PROCESSES TO THE QUEUE AFTER getStartTime HAS ELAPSED ///////
+        
         for (i = 0; i < num_processes; i++) {
             Process *p = processes[i];
 
+            shared_data->queue_mutex.lock();
             if ((p->getState() == Process::State::NotStarted) && ((currentTime() - start) >= p->getStartTime())) {
-
-                
-
-                shared_data->queue_mutex.lock();
+                // THIS IS JUST ADDING PROCESSES TO THE QUEUE AFTER getStartTime HAS ELAPSED ///////
                 shared_data->ready_queue.push_back(p);
-                shared_data->queue_mutex.unlock();
-
+                p->setState(Process::State::Ready, currentTime());
+            } else if ((p->getState() == Process::State::IO)) {
+                // If State is IO, add back to queue
+                shared_data->ready_queue.push_back(p);
                 p->setState(Process::State::Ready, currentTime());
             }
+            shared_data->queue_mutex.unlock();
         }
         ///////////////////////////////////////////
-
-        // Check to see if state is I/O
-        for (i = 0; i < num_processes; i++) {
-            Process *p = processes[i];
-
-            if ((p->getState() == Process::State::IO)) {
-
-                shared_data->queue_mutex.lock();
-                shared_data->ready_queue.push_back(p);
-                shared_data->queue_mutex.unlock();
-
-                p->setState(Process::State::Ready, currentTime());
-            }
-        }
 
         // Check to see if all processes are terminated
         for (i = 0; i < num_processes; i++) {
@@ -128,6 +115,7 @@ int main(int argc, char *argv[]) {
             }
             if(i = num_processes-1){
                 shared_data->all_terminated=true;
+                printf("ALL TERMINATED");
             }
         }
 
@@ -156,11 +144,21 @@ int main(int argc, char *argv[]) {
     //  - Average turnaround time
     //  - Average waiting time
 
+    
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     // Clean up before quitting program
-    processes.clear();
+    
     endwin();
 
+    for(Process* p : processes){
+        printf((processStateToString(p->getState()) + "\n").c_str());
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    printf("ALL TERMINATED\n");
+
+    processes.clear();
     return 0;
 }
 
@@ -204,6 +202,7 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
                 if(next_process->getRemainingBurstTime() <= 0){
                     // CPU Burst Time has elapsed
 
+                    shared_data->queue_mutex.lock();
                     // Check to see if there are more bursts remaining
                     if(next_process->getRemainingTime() > 0){
                         // Set the state to IO since there are more tasks left
@@ -212,6 +211,7 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
                         // Must not have any tasks left
                         next_process->setState(Process::Terminated, currentTime());
                     }
+                    shared_data->queue_mutex.unlock();
 
                     break;
                 } else if(next_process->isInterrupted()){
