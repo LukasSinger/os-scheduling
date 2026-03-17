@@ -24,7 +24,7 @@ Process::Process(ProcessDetails details, uint64_t current_time) {
     wait_time = 0;
     cpu_time = 0;
     total_time = 0;
-    for (i = 0; i < num_bursts; i += 2) {
+    for (i = 0; i < num_bursts; i += 1) {
         total_time += burst_times[i];
     }
     remain_time = total_time;
@@ -141,6 +141,13 @@ void Process::updateProcess(uint64_t current_time) {
         //std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
         cpu_time += delta_time;
+
+        // Remaining time: Amount of time remaining for the task (Summation of all remaining bursts)
+        if (remain_time > delta_time){
+            remain_time -= delta_time;
+        }else{
+            remain_time = 0;
+        }
     }
 
     /*
@@ -150,12 +157,7 @@ void Process::updateProcess(uint64_t current_time) {
     }
     */
 
-    // Remaining time: Amount of time remaining for the task (Summation of all remaining bursts)
-    if (remain_time > delta_time){
-        remain_time -= delta_time;
-    }else{
-        remain_time = 0;
-    }
+    
 }
 
 void Process::updateBurstTime(int burst_idx, uint32_t new_time) {

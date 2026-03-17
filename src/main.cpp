@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
             if ((p->getState() != Process::State::Terminated)) {
                 break;
             }
-            if(i = num_processes-1){
+            if(i == num_processes-1){
                 shared_data->all_terminated=true;
                 printf("ALL TERMINATED");
             }
