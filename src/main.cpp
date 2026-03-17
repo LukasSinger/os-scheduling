@@ -8,6 +8,7 @@
 #include <ncurses.h>
 #include "configreader.h"
 #include "process.h"
+#include <sstream>
 
 // Shared data for all cores
 typedef struct SchedulerData {
@@ -27,6 +28,14 @@ std::string processStateToString(Process::State state);
 
 void waitContextSwitch(SchedulerData *shared_data);
 void waitSimulatedTime();
+
+void printDebugString();
+
+void addToDebugString(std::string str);
+
+void overrideDebugString(std::string str);
+
+std::string debugString = "";
 
 int main(int argc, char *argv[]) {
     // Ensure user entered a command line parameter for configuration file name
@@ -100,6 +109,7 @@ int main(int argc, char *argv[]) {
             } else if ((p->getState() == Process::State::IO)) {
                 // If State is IO, add back to queue
                 shared_data->ready_queue.push_back(p);
+                p->incrementBurst();
                 p->setState(Process::State::Ready, currentTime());
             }
             shared_data->queue_mutex.unlock();
@@ -193,10 +203,18 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
             
 
             waitContextSwitch(shared_data); // Context switch time, determined in config
+            next_process->setBurstStartTime(currentTime());
             next_process->setState(Process::State::Running, currentTime());
             while(true){
                 //Simulateing the process running
                 waitSimulatedTime();
+                ////// DEBUG //////
+                //printw("Core %d running PID %d, Burst Rem: %f\n", core_id, next_process->getPid() ,next_process->getRemainingBurstTime());
+
+                std::string debugStr = std::string("Core ") + std::to_string(core_id) + " running PID " +std::to_string(next_process->getPid()) + ", Burst Rem: " + std::to_string(next_process->getRemainingBurstTime());
+                
+                overrideDebugString(debugStr);
+                ////// DEBUG //////
                 next_process->updateProcess(currentTime());
 
                 if(next_process->getRemainingBurstTime() <= 0){
@@ -253,8 +271,23 @@ void printProcessOutput(std::vector<Process *> &processes) {
                 process_state.c_str(), cpu_core.c_str(), progress.c_str());
         }
     }
+
+    printDebugString();
     refresh();
 }
+
+void printDebugString(){
+    printw(debugString.c_str());
+}
+
+void addToDebugString(std::string str){
+    debugString += str;
+}
+
+void overrideDebugString(std::string str){
+    debugString = str;
+}
+
 
 std::string makeProgressString(double percent, uint32_t width) {
     uint32_t n_chars = percent * width;

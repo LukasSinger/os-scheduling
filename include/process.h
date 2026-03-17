@@ -56,6 +56,8 @@ public:
     void updateBurstTime(int burst_idx, uint32_t new_time);
 
     double getRemainingBurstTime();
+
+    void incrementBurst();
 };
 
 #endif // __PROCESS_H_
