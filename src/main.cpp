@@ -23,6 +23,8 @@ typedef struct SchedulerData {
 uint8_t num_cores;
 std::string *str_list;
 
+void addToReadyQueue(Process *p);
+bool shouldInterruptProcess(Process *p);
 void coreRunProcesses(uint8_t core_id, SchedulerData *data);
 void printProcessOutput(std::vector<Process *> &processes);
 std::string makeProgressString(double percent, uint32_t width);
@@ -41,6 +43,7 @@ std::string makeBurstArrayString();
 void updatePrintAllThreads(int core_id, Process *p);
 void updatePrintAllThreads(int core_id, std::string str);
 
+SchedulerData *shared_data = new SchedulerData();
 std::string debugString = "";
 
 int main(int argc, char *argv[]) {
@@ -52,7 +55,6 @@ int main(int argc, char *argv[]) {
 
     // Declare variables used throughout main
     int i;
-    SchedulerData *shared_data = new SchedulerData();
     std::vector<Process *> processes;
 
     // Read configuration file for scheduling simulation
@@ -102,30 +104,19 @@ int main(int argc, char *argv[]) {
     // Main thread work goes here
     initscr();
     while (!(shared_data->all_terminated)) {
-        // Do the following:
-        //   - Get current time
-        //   - *Check if any processes need to move from NotStarted to Ready (based on elapsed time), and if so put that process in the ready queue
-        //   - *Check if any processes have finished their I/O burst, and if so put that process back in the ready queue
-        //   - *Check if any running process need to be interrupted (RR time slice expires or newly ready process has higher priority)
-        //     - NOTE: ensure processes are inserted into the ready queue at the proper position based on algorithm
-        //   - Determine if all processes are in the terminated state
-        //   - * = accesses shared data (ready queue), so be sure to use proper synchronization
-
-
-
         for (i = 0; i < num_processes; i++) {
             Process *p = processes[i];
 
             shared_data->queue_mutex.lock();
             if ((p->getState() == Process::State::NotStarted) && ((currentTime() - start) >= p->getStartTime())) {
                 // THIS IS JUST ADDING PROCESSES TO THE QUEUE AFTER getStartTime HAS ELAPSED ///////
-                shared_data->ready_queue.push_back(p);
-                p->setState(Process::State::Ready, currentTime());
-            } else if ((p->getState() == Process::State::IO)) {
-                // If State is IO, add back to queue
-                shared_data->ready_queue.push_back(p);
+                addToReadyQueue(p);
+            } else if ((p->getState() == Process::State::IO) && p->getRemainingBurstTime() == 0) {
+                // Add process back to ready queue after I/O burst has elapsed
+                addToReadyQueue(p);
                 p->incrementBurst();
-                p->setState(Process::State::Ready, currentTime());
+            } else if (p->getState() == Process::State::Running && shouldInterruptProcess(p)) {
+                p->interrupt();
             }
             shared_data->queue_mutex.unlock();
         }
@@ -195,6 +186,17 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+void addToReadyQueue(Process *p) {
+    shared_data->ready_queue.push_back(p);
+    p->setState(Process::State::Ready, currentTime());
+    return;
+}
+
+bool shouldInterruptProcess(Process *p) {
+    // TODO: return true when RR time slice expires or newly ready process has higher priority
+    return false;
+}
+
 void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
     // Work to be done by each core idependent of the other cores
     // Repeat until all processes in terminated state:
@@ -259,6 +261,10 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
                     break;
                 } else if (next_process->isInterrupted()) {
                     // Interrupted
+                    shared_data->queue_mutex.lock();
+                    addToReadyQueue(next_process);
+                    next_process->interruptHandled();
+                    shared_data->queue_mutex.unlock();
                     break;
                 }
             }
