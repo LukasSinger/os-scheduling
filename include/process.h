@@ -58,6 +58,7 @@ public:
     double getRemainingBurstTime();
 
     void incrementBurst();
+    uint32_t* getBursts();
 };
 
 #endif // __PROCESS_H_

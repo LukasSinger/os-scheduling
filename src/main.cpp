@@ -20,6 +20,9 @@ typedef struct SchedulerData {
     bool all_terminated;
 } SchedulerData;
 
+uint8_t num_cores;
+std::string* str_list;
+
 void coreRunProcesses(uint8_t core_id, SchedulerData *data);
 void printProcessOutput(std::vector<Process *> &processes);
 std::string makeProgressString(double percent, uint32_t width);
@@ -34,6 +37,9 @@ void printDebugString();
 void addToDebugString(std::string str);
 
 void overrideDebugString(std::string str);
+std::string makeBurstArrayString();
+void updatePrintAllThreads(int core_id, Process* p);
+void updatePrintAllThreads(int core_id, std::string str);
 
 std::string debugString = "";
 
@@ -53,7 +59,14 @@ int main(int argc, char *argv[]) {
     SchedulerConfig *config = scr::readConfigFile(argv[1]);
 
     // Store number of cores in local variable for future access
-    uint8_t num_cores = config->cores;
+    num_cores = config->cores;
+
+    // THIS IS FOR DEBUGGING //
+    str_list = new std::string[num_cores];
+    for(int i=0; i<num_cores; i++){
+        str_list[i] = std::string("\n");
+    }
+    ///////////////////////////
 
     // Store configuration parameters in shared data object
     shared_data->algorithm = config->algorithm;
@@ -73,6 +86,8 @@ int main(int argc, char *argv[]) {
     }
 
     uint32_t num_processes = config->num_processes;
+
+    int32_t finished_time;
 
     // Free configuration data from memory
     scr::deleteConfig(config);
@@ -126,6 +141,7 @@ int main(int argc, char *argv[]) {
             if(i == num_processes-1){
                 shared_data->all_terminated=true;
                 printf("ALL TERMINATED");
+                finished_time = currentTime() - start;
             }
         }
 
@@ -154,8 +170,15 @@ int main(int argc, char *argv[]) {
     //  - Average turnaround time
     //  - Average waiting time
 
+    // CPU UTIL
+    float total_cpu_time;
+    for(Process *p : processes){total_cpu_time += p->getCpuTime();}
+    float cpu_utilization = (float)(total_cpu_time*1000) / (finished_time*num_cores);
+    printw("Numerator: %d,  Denominator: %d,  CPU UTILIZATION: %f\n", total_cpu_time, (finished_time*num_cores), cpu_utilization);
     
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    refresh();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 
     // Clean up before quitting program
     
@@ -211,8 +234,10 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
                 ////// DEBUG //////
                 //printw("Core %d running PID %d, Burst Rem: %f\n", core_id, next_process->getPid() ,next_process->getRemainingBurstTime());
 
-                std::string debugStr = std::string("Core ") + std::to_string(core_id) + " running PID " +std::to_string(next_process->getPid()) + ", Burst Rem: " + std::to_string(next_process->getRemainingBurstTime());
-                
+                //std::string debugStr = std::string("Core ") + std::to_string(core_id) + " running PID " +std::to_string(next_process->getPid()) + ", Burst Rem: " + std::to_string(next_process->getRemainingBurstTime());
+                updatePrintAllThreads(core_id, next_process);
+                std::string debugStr = "";
+                for(int i=0; i<num_cores; i++){debugStr+=str_list[i];}
                 overrideDebugString(debugStr);
                 ////// DEBUG //////
                 next_process->updateProcess(currentTime());
@@ -240,6 +265,7 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
         } else{
             // Queue was empty
             shared_data->queue_mutex.unlock();
+            updatePrintAllThreads(core_id, std::string("\n"));
             waitSimulatedTime();
         }
     }
@@ -286,6 +312,29 @@ void addToDebugString(std::string str){
 
 void overrideDebugString(std::string str){
     debugString = str;
+}
+
+void updatePrintAllThreads(int core_id, Process* p){
+    std::string str = std::string("Core ") + std::to_string(core_id) + " running PID " +std::to_string(p->getPid()) + ", Burst Rem: " + std::to_string(p->getRemainingBurstTime()) + "\n";
+    str_list[core_id] = str;
+}
+
+void updatePrintAllThreads(int core_id, std::string str){
+    str_list[core_id] = str;
+}
+
+std::string makeBurstArrayString(std::vector<Process *> &processes){
+    /*
+    std::string str = "";
+    for(Process* p: processes){
+        str += "[";
+        uint32_t* bursts = p->getBursts();
+        for(int i=0; i<p->getNumBursts(); i++ ){
+
+        }
+    }
+    */
+   return "";
 }
 
 
