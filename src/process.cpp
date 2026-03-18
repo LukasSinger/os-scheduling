@@ -123,6 +123,7 @@ void Process::updateProcess(uint64_t current_time) {
     //uint64_t const_time = 5; // 5ms "chunks" of time
 
     uint64_t delta_time = current_time - last_update_time;
+    delta_time = std::min(delta_time, current_time - burst_start_time); // This makes it so that if the burst just started, we don't have a huge delta_time
     last_update_time = current_time;
 
     // Turnaround time: Time from process initialization until process termination
@@ -148,7 +149,6 @@ void Process::updateProcess(uint64_t current_time) {
         cpu_time += delta_time;
 
         // Remaining time: Amount of time remaining for the task (Summation of all remaining bursts)
-        delta_time = std::min(delta_time,current_time-burst_start_time); // This makes it so that if the burst just started, we don't have a huge delta_time
         if (remain_time > delta_time){
             remain_time -= delta_time;
         }else{
