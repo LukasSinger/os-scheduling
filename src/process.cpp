@@ -116,6 +116,10 @@ void Process::incrementBurst() {
     current_burst++;
 }
 
+uint32_t *Process::getBursts() {
+    return burst_times;
+}
+
 void Process::updateProcess(uint64_t current_time) {
     // use `current_time` to update turnaround time, wait time, burst times, 
     // cpu time, and remaining time
@@ -149,7 +153,7 @@ void Process::updateProcess(uint64_t current_time) {
         cpu_time += delta_time;
 
         // Remaining time: Amount of time remaining for the task (Summation of all remaining bursts)
-        if (remain_time > delta_time){
+        if (remain_time > delta_time) {
             remain_time -= delta_time;
         } else {
             remain_time = 0;
