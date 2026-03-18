@@ -85,8 +85,8 @@ double Process::getRemainingTime() const {
     return (double)remain_time / 1000.0;
 }
 
-double Process::getRemainingBurstTime(){
-    return (double) burst_times[current_burst] / 1000.0;
+double Process::getRemainingBurstTime() {
+    return (double)burst_times[current_burst] / 1000.0;
 }
 
 void Process::setBurstStartTime(uint64_t current_time) {
@@ -112,7 +112,7 @@ void Process::interruptHandled() {
     is_interrupted = false;
 }
 
-void Process::incrementBurst(){
+void Process::incrementBurst() {
     current_burst++;
 }
 
@@ -130,16 +130,16 @@ void Process::updateProcess(uint64_t current_time) {
     turn_time += delta_time;
 
     // Wait time: Amount of time spent in READY state (Summation)
-    if(state == Ready){
+    if (state == Ready) {
         wait_time += delta_time;
     }
 
     // burst times: Amount of time spent doing the current CPU BURST (Decrement current burst)
     // Cpu time: Amount of time spent WORKING
-    if(state == Running){
-        if (burst_times[current_burst] > delta_time){
+    if (state == Running) {
+        if (burst_times[current_burst] > delta_time) {
             burst_times[current_burst] -= delta_time;
-        }else{
+        } else {
             burst_times[current_burst] = 0;
         }
 
@@ -151,7 +151,7 @@ void Process::updateProcess(uint64_t current_time) {
         // Remaining time: Amount of time remaining for the task (Summation of all remaining bursts)
         if (remain_time > delta_time){
             remain_time -= delta_time;
-        }else{
+        } else {
             remain_time = 0;
         }
     }
@@ -163,7 +163,7 @@ void Process::updateProcess(uint64_t current_time) {
     }
     */
 
-    
+
 }
 
 void Process::updateBurstTime(int burst_idx, uint32_t new_time) {

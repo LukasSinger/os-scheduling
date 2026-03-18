@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
     std::thread *schedule_threads = new std::thread[num_cores];
     for (i = 0; i < num_cores; i++) {
         schedule_threads[i] = std::thread(coreRunProcesses, i, shared_data);
-        std::cout << "Thread " << i <<" Made";
+        std::cout << "Thread " << i << " Made";
     }
 
     // Main thread work goes here
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
         //   - * = accesses shared data (ready queue), so be sure to use proper synchronization
 
 
-        
+
         for (i = 0; i < num_processes; i++) {
             Process *p = processes[i];
 
@@ -123,8 +123,8 @@ int main(int argc, char *argv[]) {
             if ((p->getState() != Process::State::Terminated)) {
                 break;
             }
-            if(i == num_processes-1){
-                shared_data->all_terminated=true;
+            if (i == num_processes - 1) {
+                shared_data->all_terminated = true;
                 printf("ALL TERMINATED");
             }
         }
@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
 
     // wait for threads to finish
     for (i = 0; i < num_cores; i++) {
-        
+
         schedule_threads[i].join();
     }
 
@@ -154,14 +154,14 @@ int main(int argc, char *argv[]) {
     //  - Average turnaround time
     //  - Average waiting time
 
-    
+
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     // Clean up before quitting program
-    
+
     endwin();
 
-    for(Process* p : processes){
+    for (Process *p : processes) {
         printf((processStateToString(p->getState()) + "\n").c_str());
     }
 
@@ -191,66 +191,66 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
     //   - Wait short bit (i.e. sleep 5 ms)
     //  - * = accesses shared data (ready queue), so be sure to use proper synchronization
 
-    
-    while(!(shared_data->all_terminated)){
-        
+
+    while (!(shared_data->all_terminated)) {
+
         // Getting process at front of ready queue, need mutex
         shared_data->queue_mutex.lock();
-        if(!(shared_data->ready_queue.empty())){
-            Process* next_process = shared_data->ready_queue.front();
+        if (!(shared_data->ready_queue.empty())) {
+            Process *next_process = shared_data->ready_queue.front();
             shared_data->ready_queue.pop_front(); //Removing the current process from Queue
             shared_data->queue_mutex.unlock();
-            
+
 
             waitContextSwitch(shared_data); // Context switch time, determined in config
             next_process->setBurstStartTime(currentTime());
             next_process->setState(Process::State::Running, currentTime());
-            while(true){
+            while (true) {
                 //Simulateing the process running
                 waitSimulatedTime();
                 ////// DEBUG //////
                 //printw("Core %d running PID %d, Burst Rem: %f\n", core_id, next_process->getPid() ,next_process->getRemainingBurstTime());
 
-                std::string debugStr = std::string("Core ") + std::to_string(core_id) + " running PID " +std::to_string(next_process->getPid()) + ", Burst Rem: " + std::to_string(next_process->getRemainingBurstTime());
-                
+                std::string debugStr = std::string("Core ") + std::to_string(core_id) + " running PID " + std::to_string(next_process->getPid()) + ", Burst Rem: " + std::to_string(next_process->getRemainingBurstTime());
+
                 overrideDebugString(debugStr);
                 ////// DEBUG //////
                 next_process->updateProcess(currentTime());
 
-                if(next_process->getRemainingBurstTime() <= 0){
+                if (next_process->getRemainingBurstTime() <= 0) {
                     // CPU Burst Time has elapsed
 
                     shared_data->queue_mutex.lock();
                     // Check to see if there are more bursts remaining
-                    if(next_process->getRemainingTime() > 0){
+                    if (next_process->getRemainingTime() > 0) {
                         // Set the state to IO since there are more tasks left
                         next_process->setState(Process::IO, currentTime());
-                    } else{
+                    } else {
                         // Must not have any tasks left
                         next_process->setState(Process::Terminated, currentTime());
                     }
                     shared_data->queue_mutex.unlock();
 
                     break;
-                } else if(next_process->isInterrupted()){
+                } else if (next_process->isInterrupted()) {
                     // Interrupted
                     break;
                 }
             }
-        } else{
+        } else {
             // Queue was empty
             shared_data->queue_mutex.unlock();
             waitSimulatedTime();
         }
     }
-    
+
 }
 
-void waitContextSwitch(SchedulerData *shared_data){
+void waitContextSwitch(SchedulerData *shared_data) {
     std::this_thread::sleep_for(std::chrono::milliseconds(shared_data->context_switch));
 }
 
-void waitSimulatedTime(){
+void waitSimulatedTime() {
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
 }
 
@@ -276,15 +276,15 @@ void printProcessOutput(std::vector<Process *> &processes) {
     refresh();
 }
 
-void printDebugString(){
+void printDebugString() {
     printw(debugString.c_str());
 }
 
-void addToDebugString(std::string str){
+void addToDebugString(std::string str) {
     debugString += str;
 }
 
-void overrideDebugString(std::string str){
+void overrideDebugString(std::string str) {
     debugString = str;
 }
 
