@@ -187,7 +187,18 @@ int main(int argc, char *argv[]) {
 }
 
 void addToReadyQueue(Process *p) {
-    shared_data->ready_queue.push_back(p);
+    if (shared_data->algorithm == FCFS) {
+        shared_data->ready_queue.push_back(p);
+    } else if (shared_data->algorithm == SJF) {
+        // Search linearly until longer job in queue is found
+        std::list<Process *>::iterator search = shared_data->ready_queue.begin();
+        for (Process *item : shared_data->ready_queue) {
+            if (item->getRemainingBurstTime() > p->getRemainingBurstTime()) break;
+            search++;
+        }
+        // Insert at search result
+        shared_data->ready_queue.insert(search, p);
+    }
     p->setState(Process::State::Ready, currentTime());
     return;
 }
