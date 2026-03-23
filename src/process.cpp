@@ -31,6 +31,11 @@ Process::Process(ProcessDetails details, uint64_t current_time) {
     remain_time = total_time;
 
     last_update_time = current_time;
+    process_finished_counter = 0;
+    time_finished = 0;
+
+    start_time_unix = 0;
+
 }
 
 Process::~Process() {
@@ -120,6 +125,41 @@ uint32_t *Process::getBursts() {
     return burst_times;
 }
 
+void Process::setProcessFinishedCounter(int8_t cnt){
+    process_finished_counter = cnt;
+}
+
+uint8_t Process::getProcessFinishedCounter(){
+    return process_finished_counter;
+}
+
+void Process::setTimeFinished(uint64_t time){
+    time_finished = time;
+    setTurnaroundTime(time_finished-start_time_unix);
+}
+
+void Process::setTurnaroundTime(uint64_t time){
+    turn_time = time;
+}
+
+void Process::setStartTimeUnix(uint64_t timeStart){
+    start_time_unix = timeStart;
+}
+
+double Process::getThrouputAtCertainProcess(uint64_t programStartTime, uint8_t numProcesses){
+    // In this case, programStartTime is the time when you actually launch the program (eg: ./bin/osscheduler ...)
+    // And numProcesses is the number of processes to calculate the throughput
+    // For the first half of the throughput calculation, you may only be finding the throughput over 2 processes, etc
+    uint64_t delta_time = time_finished - programStartTime;
+
+    // Convert to seconds
+    delta_time/=1000;
+
+    return (double)(numProcesses) / delta_time;
+}
+
+
+
 void Process::updateProcess(uint64_t current_time) {
     // use `current_time` to update turnaround time, wait time, burst times, 
     // cpu time, and remaining time
@@ -131,7 +171,7 @@ void Process::updateProcess(uint64_t current_time) {
     last_update_time = current_time;
 
     // Turnaround time: Time from process initialization until process termination
-    turn_time += delta_time;
+    //turn_time += delta_time;
 
     // Wait time: Amount of time spent in READY state (Summation)
     if (state == Ready) {

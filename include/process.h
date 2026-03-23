@@ -27,6 +27,11 @@ private:
     uint64_t launch_time;       // actual time in ms (since epoch) that process was 'launched'
 
     uint64_t last_update_time; // Time when the process was last updated
+    uint8_t process_finished_counter; // Counter to keep track of order that the processes finish. (1 finished first, 2 finished second, etc)
+    int64_t time_finished; // Time when the process gets terminated
+
+    int64_t start_time_unix;
+    
     // you are welcome to add other private data fields here if you so choose
 
 public:
@@ -59,6 +64,13 @@ public:
 
     void incrementBurst();
     uint32_t* getBursts();
+
+    void setProcessFinishedCounter(int8_t cnt);
+    uint8_t getProcessFinishedCounter();
+    void setTimeFinished(uint64_t time);
+    double getThrouputAtCertainProcess(uint64_t startTime, uint8_t numProcesses);
+    void setTurnaroundTime(uint64_t time);
+    void setStartTimeUnix(uint64_t timeStart);
 };
 
 #endif // __PROCESS_H_

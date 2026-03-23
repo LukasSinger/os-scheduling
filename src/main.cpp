@@ -18,6 +18,8 @@ typedef struct SchedulerData {
     uint32_t time_slice;
     std::list<Process *> ready_queue;
     bool all_terminated;
+
+    uint8_t num_processes_done = 0;
 } SchedulerData;
 
 uint8_t num_cores;
@@ -84,7 +86,10 @@ int main(int argc, char *argv[]) {
         // If process should be launched immediately, add to ready queue
         if (p->getState() == Process::State::Ready) {
             shared_data->ready_queue.push_back(p);
+            p->setStartTimeUnix(start);
         }
+
+        
     }
 
     uint32_t num_processes = config->num_processes;
@@ -111,6 +116,7 @@ int main(int argc, char *argv[]) {
             if ((p->getState() == Process::State::NotStarted) && ((currentTime() - start) >= p->getStartTime())) {
                 // THIS IS JUST ADDING PROCESSES TO THE QUEUE AFTER getStartTime HAS ELAPSED ///////
                 addToReadyQueue(p);
+                p->setStartTimeUnix(currentTime());
             } else if ((p->getState() == Process::State::IO) && p->getRemainingBurstTime() == 0) {
                 // Add process back to ready queue after I/O burst has elapsed
                 addToReadyQueue(p);
@@ -162,25 +168,51 @@ int main(int argc, char *argv[]) {
     //  - Average waiting time
 
     // CPU UTIL
+    //printw("Finished Time: %d\n NumCores: %d\n", finished_time, num_cores);
     float total_cpu_time;
-    for (Process *p : processes) { total_cpu_time += p->getCpuTime(); }
+    for (Process *p : processes) { total_cpu_time += p->getCpuTime(); } // printw("%f\n", p->getCpuTime()); 
     float cpu_utilization = (float)(total_cpu_time * 1000) / (finished_time * num_cores);
-    printw("Numerator: %d,  Denominator: %d,  CPU UTILIZATION: %f\n", total_cpu_time, (finished_time * num_cores), cpu_utilization);
+    printw("Numerator: %f,  Denominator: %d,  CPU UTILIZATION: %f\n", total_cpu_time*1000, (finished_time * num_cores), cpu_utilization);
+
+    // Throughput
+    for(Process *p : processes) {printw("PID %d FINISHED %d with a Turn Time of: %f\n", p->getPid(), p->getProcessFinishedCounter(), p->getTurnaroundTime());}
+
+    double first_half_avg_throughput = 0;
+    double second_half_avg_throughput = 0;
+    double avg_throughput = 0;
+
+    // We'll round down for the "halves". 
+    // This means that if there is 5 processes, 2 will be in the first half, and 3 will be in the second half
+    int half_processes = num_processes/2;
+    for(Process *p : processes){
+        if(p->getProcessFinishedCounter() == half_processes){
+            first_half_avg_throughput = p->getThrouputAtCertainProcess(start, half_processes);
+        } else if (p->getProcessFinishedCounter() == num_processes){
+            second_half_avg_throughput = p->getThrouputAtCertainProcess(start, num_processes-half_processes);
+            avg_throughput = p->getThrouputAtCertainProcess(start, num_processes);
+        }
+    }
+
+    printw("-----THROUGHPUT ((# Processes)/s)-----\n");
+    printw("First Half average: %f\n", first_half_avg_throughput);
+    printw("Second Half average: %f\n", second_half_avg_throughput);
+    printw("Overall average: %f\n", avg_throughput);
 
 
     refresh();
-    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
 
     // Clean up before quitting program
 
     endwin();
 
-    for (Process *p : processes) {
-        printf((processStateToString(p->getState()) + "\n").c_str());
-    }
+    //for (Process *p : processes) {
+    //    printf((processStateToString(p->getState()) + "\n").c_str());
+    //}
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     printf("ALL TERMINATED\n");
+    printf("Numerator: %f,  Denominator: %f,  CPU UTILIZATION: %f\n", total_cpu_time*1000, (finished_time * num_cores), cpu_utilization);
 
     processes.clear();
     return 0;
@@ -266,6 +298,8 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
                     } else {
                         // Must not have any tasks left
                         next_process->setState(Process::Terminated, currentTime());
+                        next_process->setProcessFinishedCounter(++(shared_data->num_processes_done));
+                        next_process->setTimeFinished(currentTime());
                     }
                     shared_data->queue_mutex.unlock();
 
