@@ -289,6 +289,7 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
             waitContextSwitch(shared_data); // Context switch time, determined in config
             next_process->setBurstStartTime(currentTime());
             next_process->setState(Process::State::Running, currentTime());
+            next_process->setCpuCore(core_id);
             while (true) {
                 //Simulateing the process running
                 waitSimulatedTime();
@@ -305,7 +306,8 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
 
                 if (next_process->getRemainingBurstTime() <= 0) {
                     // CPU Burst Time has elapsed
-
+                    next_process->setCpuCore(-1);
+                    
                     shared_data->queue_mutex.lock();
                     // Check to see if there are more bursts remaining
                     if (next_process->getRemainingTime() > 0) {
