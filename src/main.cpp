@@ -219,7 +219,7 @@ int main(int argc, char *argv[]) {
 }
 
 void addToReadyQueue(Process *p) {
-    if (shared_data->algorithm == FCFS) {
+    if (shared_data->algorithm == FCFS || shared_data->algorithm == RR) {
         shared_data->ready_queue.push_back(p);
     } else if (shared_data->algorithm == SJF) {
         // Search linearly until longer job in queue is found
@@ -236,8 +236,12 @@ void addToReadyQueue(Process *p) {
 }
 
 bool shouldInterruptProcess(Process *p) {
-    // TODO: return true when RR time slice expires or newly ready process has higher priority
+    if (shared_data->algorithm == RR) {
+        return currentTime() - p->getBurstStartTime() >= shared_data->time_slice;
+    } else if (shared_data->algorithm == PP) {
+        // TODO: return true when newly ready process has higher priority
     return false;
+    } else return false;
 }
 
 void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
