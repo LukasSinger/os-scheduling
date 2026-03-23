@@ -123,6 +123,8 @@ int main(int argc, char *argv[]) {
                 p->incrementBurst();
             } else if (p->getState() == Process::State::Running && shouldInterruptProcess(p)) {
                 p->interrupt();
+            }else if (p->getState() == Process::State::Ready){
+                p->updateProcess(currentTime());
             }
             shared_data->queue_mutex.unlock();
         }
@@ -172,10 +174,11 @@ int main(int argc, char *argv[]) {
     float total_cpu_time;
     for (Process *p : processes) { total_cpu_time += p->getCpuTime(); } // printw("%f\n", p->getCpuTime()); 
     float cpu_utilization = (float)(total_cpu_time * 1000) / (finished_time * num_cores);
-    printw("Numerator: %f,  Denominator: %d,  CPU UTILIZATION: %f\n", total_cpu_time*1000, (finished_time * num_cores), cpu_utilization);
+    //printw("Numerator: %f,  Denominator: %d,  CPU UTILIZATION: %f\n", total_cpu_time*1000, (finished_time * num_cores), cpu_utilization);
+    printw("CPU UTILIZATION: %f\n", cpu_utilization);
 
     // Throughput
-    for(Process *p : processes) {printw("PID %d FINISHED %d with a Turn Time of: %f\n", p->getPid(), p->getProcessFinishedCounter(), p->getTurnaroundTime());}
+    //for(Process *p : processes) {printw("PID %d FINISHED %d with a Turn Time of: %f\n", p->getPid(), p->getProcessFinishedCounter(), p->getTurnaroundTime());}
 
     double first_half_avg_throughput = 0;
     double second_half_avg_throughput = 0;
@@ -194,10 +197,23 @@ int main(int argc, char *argv[]) {
     }
 
     printw("-----THROUGHPUT ((# Processes)/s)-----\n");
-    printw("First Half average: %f\n", first_half_avg_throughput);
-    printw("Second Half average: %f\n", second_half_avg_throughput);
-    printw("Overall average: %f\n", avg_throughput);
+    printw("   First Half average: %f\n", first_half_avg_throughput);
+    printw("   Second Half average: %f\n", second_half_avg_throughput);
+    printw("   Overall average: %f\n", avg_throughput);
 
+
+    // Turnaround Time and Wait Time:
+    double avg_turn_time = 0;
+    double avg_wait_time = 0;
+    for(Process *p : processes){
+        avg_turn_time += p->getTurnaroundTime();
+        avg_wait_time += p->getWaitTime();
+    }
+    avg_turn_time /= num_processes;
+    avg_wait_time /= num_processes;
+
+    printw("Average Turnaround Time: %f\n", avg_turn_time);
+    printw("Average Wait Time: %f\n", avg_wait_time);
 
     refresh();
     std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
