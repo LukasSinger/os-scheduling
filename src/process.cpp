@@ -180,7 +180,7 @@ void Process::updateProcess(uint64_t current_time) {
 
     // burst times: Amount of time spent doing the current CPU BURST (Decrement current burst)
     // Cpu time: Amount of time spent WORKING
-    if (state == Running) {
+    if (state == Running || state == IO) {
         if (burst_times[current_burst] > delta_time) {
             burst_times[current_burst] -= delta_time;
         } else {
@@ -189,9 +189,9 @@ void Process::updateProcess(uint64_t current_time) {
 
         //printf("BURST TIME REMAINING: %f\n", getRemainingBurstTime());
         //std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-        cpu_time += delta_time;
-
+        if(state == Running){
+            cpu_time += delta_time;
+        }
         // Remaining time: Amount of time remaining for the task (Summation of all remaining bursts)
         if (remain_time > delta_time) {
             remain_time -= delta_time;

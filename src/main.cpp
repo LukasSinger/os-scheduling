@@ -121,7 +121,9 @@ int main(int argc, char *argv[]) {
                 // Add process back to ready queue after I/O burst has elapsed
                 addToReadyQueue(p);
                 p->incrementBurst();
-            } else if (p->getState() == Process::State::Running && shouldInterruptProcess(p)) {
+            } else if((p->getState() == Process::State::IO)){
+                p->updateProcess(currentTime());
+            }else if (p->getState() == Process::State::Running && shouldInterruptProcess(p)) {
                 p->interrupt();
             }else if (p->getState() == Process::State::Ready){
                 p->updateProcess(currentTime());
@@ -313,6 +315,7 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
                     if (next_process->getRemainingTime() > 0) {
                         // Set the state to IO since there are more tasks left
                         next_process->setState(Process::IO, currentTime());
+                        next_process->incrementBurst();
                     } else {
                         // Must not have any tasks left
                         next_process->setState(Process::Terminated, currentTime());
