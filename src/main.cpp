@@ -254,7 +254,7 @@ void addToReadyQueue(Process *p) {
 }
 
 bool shouldInterruptProcess(Process *p) {
-    if (shared_data->algorithm == RR) {
+    if (shared_data->algorithm == RR && p->getState() == Process::State::Running) {
         return currentTime() - p->getBurstStartTime() >= shared_data->time_slice;
     } else if (shared_data->algorithm == PP) {
         // TODO: return true when newly ready process has higher priority
