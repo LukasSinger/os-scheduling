@@ -125,35 +125,35 @@ uint32_t *Process::getBursts() {
     return burst_times;
 }
 
-void Process::setProcessFinishedCounter(int8_t cnt){
+void Process::setProcessFinishedCounter(int8_t cnt) {
     process_finished_counter = cnt;
 }
 
-uint8_t Process::getProcessFinishedCounter(){
+uint8_t Process::getProcessFinishedCounter() {
     return process_finished_counter;
 }
 
-void Process::setTimeFinished(uint64_t time){
+void Process::setTimeFinished(uint64_t time) {
     time_finished = time;
-    setTurnaroundTime(time_finished-start_time_unix);
+    setTurnaroundTime(time_finished - start_time_unix);
 }
 
-void Process::setTurnaroundTime(uint64_t time){
+void Process::setTurnaroundTime(uint64_t time) {
     turn_time = time;
 }
 
-void Process::setStartTimeUnix(uint64_t timeStart){
+void Process::setStartTimeUnix(uint64_t timeStart) {
     start_time_unix = timeStart;
 }
 
-double Process::getThrouputAtCertainProcess(uint64_t programStartTime, uint8_t numProcesses){
+double Process::getThrouputAtCertainProcess(uint64_t programStartTime, uint8_t numProcesses) {
     // In this case, programStartTime is the time when you actually launch the program (eg: ./bin/osscheduler ...)
     // And numProcesses is the number of processes to calculate the throughput
     // For the first half of the throughput calculation, you may only be finding the throughput over 2 processes, etc
     uint64_t delta_time = time_finished - programStartTime;
 
     // Convert to seconds
-    delta_time/=1000;
+    delta_time /= 1000;
 
     return (double)(numProcesses) / delta_time;
 }
@@ -189,7 +189,7 @@ void Process::updateProcess(uint64_t current_time) {
 
         //printf("BURST TIME REMAINING: %f\n", getRemainingBurstTime());
         //std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        if(state == Running){
+        if (state == Running) {
             cpu_time += delta_time;
         }
         // Remaining time: Amount of time remaining for the task (Summation of all remaining bursts)

@@ -88,8 +88,6 @@ int main(int argc, char *argv[]) {
             shared_data->ready_queue.push_back(p);
             p->setStartTimeUnix(start);
         }
-
-        
     }
 
     uint32_t num_processes = config->num_processes;
@@ -121,11 +119,11 @@ int main(int argc, char *argv[]) {
                 // Add process back to ready queue after I/O burst has elapsed
                 addToReadyQueue(p);
                 p->incrementBurst();
-            } else if((p->getState() == Process::State::IO)){
+            } else if ((p->getState() == Process::State::IO)) {
                 p->updateProcess(currentTime());
-            }else if (p->getState() == Process::State::Running && shouldInterruptProcess(p)) {
+            } else if (p->getState() == Process::State::Running && shouldInterruptProcess(p)) {
                 p->interrupt();
-            }else if (p->getState() == Process::State::Ready){
+            } else if (p->getState() == Process::State::Ready) {
                 p->updateProcess(currentTime());
             }
             shared_data->queue_mutex.unlock();
@@ -188,12 +186,12 @@ int main(int argc, char *argv[]) {
 
     // We'll round down for the "halves". 
     // This means that if there is 5 processes, 2 will be in the first half, and 3 will be in the second half
-    int half_processes = num_processes/2;
-    for(Process *p : processes){
-        if(p->getProcessFinishedCounter() == half_processes){
+    int half_processes = num_processes / 2;
+    for (Process *p : processes) {
+        if (p->getProcessFinishedCounter() == half_processes) {
             first_half_avg_throughput = p->getThrouputAtCertainProcess(start, half_processes);
-        } else if (p->getProcessFinishedCounter() == num_processes){
-            second_half_avg_throughput = p->getThrouputAtCertainProcess(start, num_processes-half_processes);
+        } else if (p->getProcessFinishedCounter() == num_processes) {
+            second_half_avg_throughput = p->getThrouputAtCertainProcess(start, num_processes - half_processes);
             avg_throughput = p->getThrouputAtCertainProcess(start, num_processes);
         }
     }
@@ -207,7 +205,7 @@ int main(int argc, char *argv[]) {
     // Turnaround Time and Wait Time:
     double avg_turn_time = 0;
     double avg_wait_time = 0;
-    for(Process *p : processes){
+    for (Process *p : processes) {
         avg_turn_time += p->getTurnaroundTime();
         avg_wait_time += p->getWaitTime();
     }
@@ -230,7 +228,7 @@ int main(int argc, char *argv[]) {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     printf("ALL TERMINATED\n");
-    printf("Numerator: %f,  Denominator: %f,  CPU UTILIZATION: %f\n", total_cpu_time*1000, (finished_time * num_cores), cpu_utilization);
+    printf("Numerator: %f,  Denominator: %f,  CPU UTILIZATION: %f\n", total_cpu_time * 1000, (finished_time * num_cores), cpu_utilization);
 
     processes.clear();
     return 0;
@@ -317,7 +315,7 @@ void coreRunProcesses(uint8_t core_id, SchedulerData *shared_data) {
                 if (next_process->getRemainingBurstTime() <= 0) {
                     // CPU Burst Time has elapsed
                     next_process->setCpuCore(-1);
-                    
+
                     shared_data->queue_mutex.lock();
                     // Check to see if there are more bursts remaining
                     if (next_process->getRemainingTime() > 0) {
