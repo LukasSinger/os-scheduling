@@ -239,14 +239,15 @@ int main(int argc, char *argv[]) {
 void addToReadyQueue(Process *p) {
     if (shared_data->algorithm == FCFS || shared_data->algorithm == RR) {
         shared_data->ready_queue.push_back(p);
-    } else if (shared_data->algorithm == SJF) {
-        // Search linearly until longer job in queue is found
+    } else {
+        // Search linearly until longer/lower-priority job in queue is found
         std::list<Process *>::iterator search = shared_data->ready_queue.begin();
         for (Process *item : shared_data->ready_queue) {
-            if (item->getRemainingBurstTime() > p->getRemainingBurstTime()) break;
+            if (shared_data->algorithm == SJF && item->getRemainingBurstTime() > p->getRemainingBurstTime()) break;
+            if (shared_data->algorithm == PP && item->getPriority() > p->getPriority()) break;
             search++;
         }
-        // Insert at search result
+        // Insert just before search result
         shared_data->ready_queue.insert(search, p);
     }
     p->setState(Process::State::Ready, currentTime());
@@ -257,8 +258,11 @@ bool shouldInterruptProcess(Process *p) {
     if (shared_data->algorithm == RR && p->getState() == Process::State::Running) {
         return currentTime() - p->getBurstStartTime() >= shared_data->time_slice;
     } else if (shared_data->algorithm == PP) {
-        // TODO: return true when newly ready process has higher priority
-    return false;
+        if (shared_data->ready_queue.empty()) return false;
+        // Front of queue will always be equal/lower priority
+        // UNLESS higher-priority process is added to queue
+        uint8_t highestPrioInQueue = shared_data->ready_queue.front()->getPriority();
+        return highestPrioInQueue < p->getPriority();
     } else return false;
 }
 
