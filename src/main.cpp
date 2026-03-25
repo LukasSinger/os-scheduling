@@ -365,7 +365,7 @@ void printProcessOutput(std::vector<Process *> &processes) {
             uint8_t priority = processes[i]->getPriority();
             std::string process_state = processStateToString(processes[i]->getState());
             int8_t core = processes[i]->getCpuCore();
-            std::string cpu_core = (core >= 0) ? std::to_string(core) : "--";
+            std::string cpu_core = ((core >= 0) && (processes[i]->getState() == Process::State::Running)) ? std::to_string(core) : "--";
             double total_time = processes[i]->getTotalRunTime();
             double completed_time = total_time - processes[i]->getRemainingTime();
             std::string progress = makeProgressString(completed_time / total_time, 36);
